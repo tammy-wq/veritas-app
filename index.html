@@ -750,13 +750,19 @@ function saveAssignments(jobId, arr) {
   localStorage.setItem('asgn_' + jobId, JSON.stringify(arr));
 }
 
-// Per-job subcontractors stored locally
+// ── SUBCONTRACTOR MASTER LIST ──────────────────────────────
+const SUB_MASTER = [{"company": "Accurate Heating & Cooling, Inc", "contact": "Tammy", "phone": "573-442-7312", "email": "office@accurateheatcool.com", "trade": "HVAC", "notes": ""}, {"company": "ACR Concrete", "contact": "Craig Shoemate", "phone": "573-682-7327", "email": "acrconcrete83@gmail.com", "trade": "Concrete", "notes": ""}, {"company": "Adam Plumbing", "contact": "Adam M Davis", "phone": "573-808-4786", "email": "aplumbing52@yahoo.com", "trade": "Plumbing", "notes": ""}, {"company": "AG Siding, LLC", "contact": "Arturo Gonzalez", "phone": "573-639-8628", "email": "agsidingllc@gmail.com", "trade": "Siding", "notes": ""}, {"company": "Around Your Home", "contact": "Drew Heathcote", "phone": "573-864-7877", "email": "drewayh@icloud.com", "trade": "Landscape", "notes": ""}, {"company": "ATRB LLC", "contact": "Jason Bell", "phone": "573-356-8758", "email": "atrb.llc@gmail.com", "trade": "Painting", "notes": ""}, {"company": "Black & Gold Renovation, LLC", "contact": "Erick Moncada / Jonelle Alvarado Moncada", "phone": "573-999-2661 / 573-228-0770", "email": "blackandgoldrenovation@gmail.com", "trade": "Siding", "notes": ""}, {"company": "Bluebird Custom Painting, LLC", "contact": "Issac Wren", "phone": "573-239-5729", "email": "bluebirdcustompainting@gmail.com", "trade": "Painting", "notes": "Individual - does not carry WC"}, {"company": "Coring & Cutting Construction, INC", "contact": "John Pervinich / Gavin Marsh", "phone": "573-257-3384 / 573-301-1663", "email": "", "trade": "Concrete", "notes": "MUST HAVE NEW PAPERWORK FOR EACH ADDRESS! MUST TALK TO OFFICE BEFORE USING"}, {"company": "DB Construction MO LLC", "contact": "David Borntrager", "phone": "573-356-2123", "email": "davidborntragerconst@yahoo.com", "trade": "Roofing", "notes": ""}, {"company": "D&K Enterprises - DBA Dave's Painting", "contact": "Dave Kopriva", "phone": "573-819-5253", "email": "davekoprivapainting@gmail.com", "trade": "Painting", "notes": ""}, {"company": "Drywall Dan, LLC", "contact": "Daniel Loftin", "phone": "573-808-7472", "email": "drywalldanllc@gmail.com", "trade": "Drywall", "notes": ""}, {"company": "Dylans Garage Doors LLC", "contact": "Tamra Soper", "phone": "573-875-4599", "email": "dylansdoors@gmail.com", "trade": "Garage Door", "notes": ""}, {"company": "Eddie's Garage Doors Inc.", "contact": "Clayton Oringderf", "phone": "573-886-8442", "email": "sales@eddiesgaragedoors.com", "trade": "Garage Door", "notes": ""}, {"company": "Elevate Roofing and Construction LLC", "contact": "Jose Tolentino Reyes", "phone": "573-818-5452", "email": "jandres143@gmail.com", "trade": "Roofing", "notes": ""}, {"company": "First Choice Tile & Flooring", "contact": "Dylan Bowen", "phone": "573-819-1267", "email": "fctileandflooring@gmail.com", "trade": "Tile / Flooring", "notes": ""}, {"company": "Gecko Drywall, Inc", "contact": "Eddy or Linda Palmer", "phone": "573-819-8109", "email": "palm4466@yahoo.com", "trade": "Drywall", "notes": ""}, {"company": "GEH General Construction", "contact": "Elmer Mendez / Yeimi Mendez", "phone": "660-473-2094 / 660-287-9447", "email": "gehgeneralconstructionllc@gmail.com", "trade": "Roofing", "notes": ""}, {"company": "Harts Exteriors LLC", "contact": "Landon Hart", "phone": "949-636-5902", "email": "landonrh27@gmail.com", "trade": "Gutters", "notes": ""}, {"company": "Helton Home Team, LLC", "contact": "Tyler Helton", "phone": "573-578-7571", "email": "tylerhelton486@gmail.com", "trade": "Remodel / General", "notes": "No other sub on site without Veritas approval. Does not do electrical, flooring, plumbing, or carpet."}, {"company": "Heritage Mechanical Services (DBA)", "contact": "Christina Sanchez", "phone": "573-645-4490", "email": "christina@heritagemechanicalservices.com", "trade": "HVAC", "notes": ""}, {"company": "Ideal Mitigation Services / Midmo Property Services", "contact": "Steven Guitard", "phone": "417-540-3160", "email": "midmopropservices@gmail.com", "trade": "Mold Remediation", "notes": ""}, {"company": "Jake's Plumbing, LLC", "contact": "Jake Blochberger - Master Plumber", "phone": "573-303-2827", "email": "jakesplumbingllc@gmail.com", "trade": "Plumbing", "notes": ""}, {"company": "JB Siding Windows and Doors, LLC", "contact": "Johnny Bargas", "phone": "573-881-4919", "email": "jbsidingwindowsanddoors@gmail.com", "trade": "Windows / Doors", "notes": ""}, {"company": "John Fisher", "contact": "John Fisher", "phone": "573-489-3504", "email": "fisherj45@yahoo.com", "trade": "Drywall", "notes": ""}, {"company": "L and J Electrical, LLC", "contact": "Jordan / Landon", "phone": "573-673-7481 / 660-728-9539", "email": "Landonandjordanelectricllc@gmail.com", "trade": "Electrical", "notes": ""}, {"company": "Luis Rivera", "contact": "Luis Rivera", "phone": "573-823-6923", "email": "Columbiamo1970@gmail.com", "trade": "Remodel / General", "notes": ""}, {"company": "M.G. Gutter Boy's Construction, LLC", "contact": "Moises (Moe) R Guillen", "phone": "573-424-7756", "email": "moesconstruction23@yahoo.com", "trade": "Gutters", "notes": ""}, {"company": "MDS Construction", "contact": "Miguel Cano", "phone": "573-353-4048", "email": "", "trade": "Roofing", "notes": ""}, {"company": "Mechlin Plumbing, LLC", "contact": "Richard Mechlin", "phone": "573-673-0573", "email": "mechlinplumbing@gmail.com", "trade": "Plumbing", "notes": ""}, {"company": "Omar Roofing & Construction LLC", "contact": "Omar Rivera", "phone": "573-603-5945", "email": "omarrivera141991@gmail.com", "trade": "Roofing", "notes": ""}, {"company": "Pali Industries", "contact": "Javier Padilla", "phone": "573-644-0538", "email": "Javierpadilla@paliindustries.com", "trade": "Framing", "notes": ""}, {"company": "Pro Innovation LLC", "contact": "Nicolas Shushinsky", "phone": "", "email": "nicks751986@gmail.com", "trade": "Gutters", "notes": ""}, {"company": "Raising Solutions", "contact": "Nick Fitzsimmons", "phone": "573-935-4022", "email": "jbaker@raising-solutions.com", "trade": "Foundation", "notes": ""}, {"company": "Rock-N-River, LLC", "contact": "Richard (Rich) Denton", "phone": "573-819-1129", "email": "rich@rocknriverllc.com", "trade": "Masonry", "notes": ""}, {"company": "Rural Customs", "contact": "Johnny Adkisson", "phone": "573-696-4618", "email": "ruralcustoms@gmail.com", "trade": "Remodel / General", "notes": "Gutters & Decks specialty"}, {"company": "Russell Gay", "contact": "Russell Gay", "phone": "573-514-2438", "email": "saylerpainting@yahoo.com", "trade": "Painting", "notes": ""}, {"company": "Rybolt Masonry Co. LLC", "contact": "Shelby Rybolt", "phone": "573-220-8986", "email": "", "trade": "Masonry", "notes": ""}, {"company": "Salter Lawn Service", "contact": "Stacy Salter", "phone": "573-657-2455", "email": "stacy@salterlawnservice.com", "trade": "Landscape", "notes": ""}, {"company": "Samuels Flooring & Remodeling, LLC", "contact": "Jason Samuel", "phone": "573-881-7402", "email": "Jasonsam29@gmail.com", "trade": "Flooring", "notes": ""}, {"company": "Silver Fern Finishing", "contact": "Tom Gilberg", "phone": "573-501-0212", "email": "SilverFernFinishing@outlook.com", "trade": "Trim / Carpentry", "notes": ""}, {"company": "Star Heating and Air Conditioning CO., Inc.", "contact": "Bobbie Shaver", "phone": "573-449-3784", "email": "bobbie@starheat.com", "trade": "HVAC", "notes": ""}, {"company": "Timeless Tile & Stone LLC", "contact": "Colten Harrison", "phone": "816-977-9021", "email": "", "trade": "Tile / Flooring", "notes": ""}, {"company": "Thurston and Niles Professional Services, LLC", "contact": "Mitch Niles", "phone": "573-239-9125", "email": "mitchell.niles573@gmail.com", "trade": "Remodel / General", "notes": ""}, {"company": "Webb Concrete & Hardscapes, LLC", "contact": "Justin Webb", "phone": "573-284-4178", "email": "webbconcrete@yahoo.com", "trade": "Concrete", "notes": ""}, {"company": "Withrow Electric Inc", "contact": "Tracey (Paul Showers, GM)", "phone": "573-445-8086", "email": "info@withrowelectric.com", "trade": "Electrical", "notes": ""}, {"company": "Wright and Sons, LLC", "contact": "Richard Wright", "phone": "573-881-7436", "email": "wrightwaysuper@gmail.com", "trade": "Flooring", "notes": ""}, {"company": "Zelaya's Construction & Remodeling LLC", "contact": "Derrick Nesbitt", "phone": "573-864-8883", "email": "nsbttderrick@gmail.com", "trade": "Remodel / General", "notes": ""}];
+const SUB_TRADES = ["Concrete", "Drywall", "Electrical", "Flooring", "Foundation", "Framing", "Garage Door", "Gutters", "HVAC", "Landscape", "Masonry", "Mold Remediation", "Painting", "Plumbing", "Remodel / General", "Roofing", "Siding", "Tile / Flooring", "Trim / Carpentry", "Windows / Doors"];
+
+// Per-job subcontractors — synced via Google Sheets
 function getSubs(jobId) {
   try { return JSON.parse(localStorage.getItem('subs_' + jobId) || '[]'); }
   catch(e) { return []; }
 }
 function saveSubs(jobId, arr) {
   localStorage.setItem('subs_' + jobId, JSON.stringify(arr));
+  // Write back to Google Sheets
+  post({ action:'updateSubs', rowIndex:jobId, subs:arr }).catch(()=>{});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1128,12 +1134,20 @@ function renderTab(tab) {
     const subs = getSubs(j.rowIndex);
     const subsHtml = subs.length
       ? subs.map((s,i) => `
-          <div class="info-row" style="align-items:flex-start;">
-            <div>
-              <div class="lbl" style="font-weight:600;color:var(--text);">${s.trade}</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${s.company}${s.contact?' · '+s.contact:''}</div>
+          <div class="info-row" style="align-items:flex-start;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+              <div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--blue);">${s.trade}</div>
+                <div style="font-size:14px;font-weight:600;color:var(--navy);margin-top:2px;">${s.company}</div>
+              </div>
+              <button onclick="removeSub(${i})" style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:0;line-height:1;flex-shrink:0;">×</button>
             </div>
-            <button onclick="removeSub(${i})" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:0;line-height:1;">×</button>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+              ${s.contact?'👤 '+s.contact+'<br>':''}
+              ${s.phone?'📞 <a href="tel:'+s.phone.split('/')[0].trim()+'" style="color:var(--blue);text-decoration:none;">'+s.phone+'</a><br>':''}
+              ${s.email?'✉️ <a href="mailto:'+s.email.split('/')[0].trim()+'" style="color:var(--blue);text-decoration:none;">'+s.email+'</a>':''}
+            </div>
+            ${s.notes?`<div style="font-size:11px;background:var(--amber-pale);color:var(--amber);padding:4px 8px;border-radius:6px;font-weight:500;">⚠️ ${s.notes}</div>`:''}
           </div>`).join('')
       : '<div class="info-row"><span style="font-size:13px;color:var(--text-muted);">No subcontractors added yet</span></div>';
 
@@ -1149,13 +1163,36 @@ function renderTab(tab) {
       <div class="section-label">Assigned Subcontractors</div>
       <div class="info-block" id="subsList">${subsHtml}</div>
       <div class="add-sub-box" id="addSubBox" style="display:none;">
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <input class="setup-input" id="subTrade" placeholder="Trade (e.g. Framing, Electrical, Plumbing)" style="margin-bottom:0;font-size:13px;padding:10px 12px;"/>
-          <input class="setup-input" id="subCompany" placeholder="Company or Subcontractor Name" style="margin-bottom:0;font-size:13px;padding:10px 12px;"/>
-          <input class="setup-input" id="subContact" placeholder="Contact / Phone (optional)" style="margin-bottom:0;font-size:13px;padding:10px 12px;"/>
+        <div id="subPickerView">
+          <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px;">Select from Sub List</div>
+          <select class="setup-input" id="subTradeFilter" onchange="filterSubDropdown()" style="margin-bottom:8px;font-size:13px;padding:10px 12px;">
+            <option value="">— Filter by Trade —</option>
+            ${SUB_TRADES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+          </select>
+          <select class="setup-input" id="subDropdown" style="margin-bottom:10px;font-size:13px;padding:10px 12px;">
+            <option value="">— Select Subcontractor —</option>
+            ${SUB_MASTER.map((s,i)=>`<option value="${i}">${s.company} (${s.trade})</option>`).join('')}
+          </select>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button class="btn btn-primary btn-sm" onclick="addSubFromDropdown()" style="flex:1;">Add Selected</button>
+            <button class="btn btn-ghost btn-sm" onclick="showNewSubForm()" style="flex:1;">+ New Sub</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="cancelAddSub()" style="width:100%;">Cancel</button>
+        </div>
+        <div id="subNewView" style="display:none;">
+          <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px;">Add New Subcontractor</div>
+          <select class="setup-input" id="newSubTrade" style="margin-bottom:8px;font-size:13px;padding:10px 12px;">
+            <option value="">— Select Trade —</option>
+            ${SUB_TRADES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+            <option value="Other">Other</option>
+          </select>
+          <input class="setup-input" id="newSubCompany" placeholder="Company Name" style="margin-bottom:8px;font-size:13px;padding:10px 12px;"/>
+          <input class="setup-input" id="newSubContact" placeholder="Contact Name" style="margin-bottom:8px;font-size:13px;padding:10px 12px;"/>
+          <input class="setup-input" id="newSubPhone" placeholder="Phone Number" style="margin-bottom:8px;font-size:13px;padding:10px 12px;"/>
+          <input class="setup-input" id="newSubEmail" placeholder="Email Address" style="margin-bottom:10px;font-size:13px;padding:10px 12px;"/>
           <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary btn-sm" onclick="saveSub()" style="flex:1;">Add Sub</button>
-            <button class="btn btn-ghost btn-sm" onclick="cancelAddSub()" style="flex:1;">Cancel</button>
+            <button class="btn btn-primary btn-sm" onclick="saveNewSub()" style="flex:1;">Save & Add to Job</button>
+            <button class="btn btn-ghost btn-sm" onclick="showSubPicker()" style="flex:1;">← Back</button>
           </div>
         </div>
       </div>
@@ -1394,27 +1431,73 @@ function closeModal() {
 function showAddSub() {
   document.getElementById('addSubBox').style.display = 'block';
   document.getElementById('addSubBtn').style.display = 'none';
-  document.getElementById('subTrade').focus();
+  showSubPicker();
 }
 
 function cancelAddSub() {
   document.getElementById('addSubBox').style.display = 'none';
   document.getElementById('addSubBtn').style.display = '';
-  document.getElementById('subTrade').value = '';
-  document.getElementById('subCompany').value = '';
-  document.getElementById('subContact').value = '';
 }
 
-function saveSub() {
-  const trade   = document.getElementById('subTrade').value.trim();
-  const company = document.getElementById('subCompany').value.trim();
-  const contact = document.getElementById('subContact').value.trim();
-  if (!trade || !company) { toast('Please enter trade and company name'); return; }
+function showSubPicker() {
+  document.getElementById('subPickerView').style.display = 'block';
+  document.getElementById('subNewView').style.display = 'none';
+  filterSubDropdown();
+}
+
+function showNewSubForm() {
+  document.getElementById('subPickerView').style.display = 'none';
+  document.getElementById('subNewView').style.display = 'block';
+}
+
+function filterSubDropdown() {
+  const trade = document.getElementById('subTradeFilter').value;
+  const dd = document.getElementById('subDropdown');
+  dd.innerHTML = '<option value="">— Select Subcontractor —</option>';
+  SUB_MASTER.forEach((s, i) => {
+    if (!trade || s.trade === trade) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = s.company + (s.contact ? ' — ' + s.contact : '');
+      dd.appendChild(opt);
+    }
+  });
+}
+
+function addSubFromDropdown() {
+  const idx = document.getElementById('subDropdown').value;
+  if (idx === '') { toast('Please select a subcontractor'); return; }
+  const sub = SUB_MASTER[parseInt(idx)];
   const j = jobs[currentJobIdx];
   const subs = getSubs(j.rowIndex);
-  subs.push({ trade, company, contact });
+  // Prevent duplicates
+  if (subs.find(s => s.company === sub.company)) {
+    toast(sub.company + ' already added'); return;
+  }
+  subs.push({ trade: sub.trade, company: sub.company, contact: sub.contact, phone: sub.phone, email: sub.email, notes: sub.notes });
   saveSubs(j.rowIndex, subs);
-  toast('Subcontractor added ✓');
+  toast(sub.company + ' added ✓');
+  cancelAddSub();
+  renderTab('info');
+}
+
+function saveNewSub() {
+  const trade   = document.getElementById('newSubTrade').value;
+  const company = document.getElementById('newSubCompany').value.trim();
+  const contact = document.getElementById('newSubContact').value.trim();
+  const phone   = document.getElementById('newSubPhone').value.trim();
+  const email   = document.getElementById('newSubEmail').value.trim();
+  if (!trade || !company) { toast('Please enter trade and company name'); return; }
+  const newSub = { trade, company, contact, phone, email, notes: '' };
+  // Add to master list for this session
+  SUB_MASTER.push(newSub);
+  // Add to this job
+  const j = jobs[currentJobIdx];
+  const subs = getSubs(j.rowIndex);
+  subs.push(newSub);
+  saveSubs(j.rowIndex, subs);
+  toast(company + ' added ✓');
+  cancelAddSub();
   renderTab('info');
 }
 
