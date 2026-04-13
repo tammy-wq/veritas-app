@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Veritas Field App</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',sans-serif;background:#F8F9FA;color:#0F2645;min-height:100vh}
+.topnav{background:#0F2645;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.mark{width:32px;height:32px;background:#E8A020;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#0F2645}
+.appname{font-size:16px;font-weight:600;color:#fff;margin-left:10px}
+.appsub{font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;margin-left:10px}
+.badge{background:#E8A020;color:#0F2645;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}
+.syncbtn{background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:18px;width:36px;height:36px;border-radius:8px;cursor:pointer}
+.screen{display:none}.screen.active{display:block}
+.setup{padding:28px 20px;max-width:480px;margin:0 auto}
+.bigmark{width:64px;height:64px;background:#E8A020;border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:30px;color:#0F2645;margin:0 auto 14px}
+.setuptitle{font-size:22px;font-weight:700;text-align:center;margin-bottom:6px}
+.setupsub{font-size:13px;color:#6C757D;text-align:center;margin-bottom:24px;line-height:1.6}
+.scard{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 12px rgba(15,38,69,0.10);margin-bottom:14px}
+.scard h3{font-size:14px;font-weight:700;margin-bottom:6px}
+.scard p{font-size:12px;color:#6C757D;line-height:1.6;margin-bottom:10px}
+.sinput{width:100%;padding:11px 12px;border:1.5px solid #E9ECEF;border-radius:8px;font-size:13px;outline:none;margin-bottom:8px;font-family:inherit}
+.sinput:focus{border-color:#2E6DB4}
+.btn{display:block;width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:700;border:none;cursor:pointer;text-align:center;margin-top:4px}
+.btn-primary{background:#0F2645;color:#fff}
+.btn-success{background:#1B7A3E;color:#fff}
+.btn-ghost{background:#E9ECEF;color:#0F2645;margin-top:8px}
+.btn-sm{padding:8px 14px;width:auto;display:inline-block;font-size:12px}
+.syncbar{background:#EEF4FB;padding:5px 16px;font-size:11px;color:#1B4F8A;text-align:center}
+.sumrow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 12px}
+.sumc{background:#fff;border-radius:10px;padding:8px 6px;text-align:center;box-shadow:0 2px 8px rgba(15,38,69,0.08);border-top:3px solid #2E6DB4}
+.sumc.r{border-top-color:#7C3AED}
+.sumc.ro{border-top-color:#E8A020}
+.sumc.cl{border-top-color:#0891B2}
+.sumnum{font-size:18px;font-weight:700}
+.sumlbl{font-size:9px;color:#6C757D;text-transform:uppercase;letter-spacing:0.3px;margin-top:2px}
+.srchw{padding:0 12px 8px}
+.srchin{padding:9px 14px;border:1.5px solid #E9ECEF;border-radius:50px;width:100%;font-size:13px;outline:none;font-family:inherit}
+.pills{display:flex;gap:5px;padding:0 12px 10px;overflow-x:auto;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pill{padding:5px 11px;border-radius:50px;font-size:11px;font-weight:600;border:1.5px solid #E9ECEF;background:#fff;color:#6C757D;cursor:pointer;white-space:nowrap}
+.pill.on{background:#0F2645;border-color:#0F2645;color:#fff}
+.pill.on.remodel{background:#7C3AED;border-color:#7C3AED}
+.pill.on.roof{background:#E8A020;border-color:#E8A020;color:#0F2645}
+.pill.on.claims{background:#0891B2;border-color:#0891B2}
+.pill.on.stalled{background:#D97706;border-color:#D97706}
+.pill.on.attention{background:#B91C1C;border-color:#B91C1C}
+.jlist{padding:0 12px 80px;display:flex;flex-direction:column;gap:8px}
+.jc{background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 2px 8px rgba(15,38,69,0.08);cursor:pointer;border-left:4px solid #2E6DB4}
+.jc.remodel{border-left-color:#7C3AED}
+.jc.roof{border-left-color:#E8A020}
+.jc.claim{border-left-color:#0891B2}
+.jc.stalled{border-left-color:#D97706}
+.jc.attention{border-left-color:#B91C1C}
+.jc.complete{border-left-color:#1B7A3E}
+.jtop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.jaddr{font-size:14px;font-weight:600;line-height:1.3;flex:1}
+.jamt{font-size:12px;font-weight:700;color:#2E6DB4;white-space:nowrap}
+.jclient{font-size:11px;color:#6C757D;margin-top:3px}
+.jtags{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:#EEF4FB;color:#2E6DB4}
+.tag.remodel{background:#EDE9FE;color:#7C3AED}
+.tag.roof{background:#FFF7ED;color:#C2410C}
+.tag.claim{background:#E0F2FE;color:#0369A1}
+.tag.ok{background:#E8F5E9;color:#1B7A3E}
+.tag.warn{background:#FFFBEB;color:#D97706}
+.tag.urg{background:#FEE2E2;color:#B91C1C}
+.tag.stalled{background:#FFFBEB;color:#D97706}
+.tag.attention{background:#FEE2E2;color:#B91C1C}
+.tag.complete{background:#E8F5E9;color:#1B7A3E}
+.jnote{font-size:11px;color:#6C757D;margin-top:6px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.jprog{margin-top:8px;height:3px;background:#E9ECEF;border-radius:3px;overflow:hidden}
+.jprogf{height:100%;background:#2E6DB4;border-radius:3px}
+.dhdr{background:#0F2645;padding:14px 16px;color:#fff}
+.bbtn{background:none;border:none;color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:10px;display:block}
+.daddr{font-size:18px;font-weight:700;line-height:1.2}
+.dclient{font-size:13px;color:rgba(255,255,255,0.65);margin-top:3px}
+.dchips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.dchip{background:rgba(255,255,255,0.12);border-radius:6px;padding:5px 10px;font-size:11px;color:#fff}
+.dchip span{font-weight:700;display:block;font-size:13px}
+.dtabs{display:flex;background:#fff;border-bottom:1.5px solid #E9ECEF;position:sticky;top:56px;z-index:50}
+.dtab{flex:1;padding:11px 4px;text-align:center;font-size:11px;font-weight:600;color:#6C757D;cursor:pointer;border-bottom:2px solid transparent}
+.dtab.on{color:#0F2645;border-bottom-color:#0F2645}
+.dbody{padding:14px;padding-bottom:80px}
+.slbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#6C757D;margin-bottom:8px;margin-top:16px}
+.slbl:first-child{margin-top:0}
+.iblc{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(15,38,69,0.08);overflow:hidden;margin-bottom:10px}
+.irow{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #F1F3F5;gap:12px}
+.irow:last-child{border-bottom:none}
+.ilbl{font-size:12px;color:#6C757D;flex-shrink:0}
+.ival{font-size:12px;font-weight:600;text-align:right}
+.claimblock{background:#E0F2FE;border-radius:12px;padding:14px;margin-bottom:10px;border-left:4px solid #0891B2}
+.claimtitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#0369A1;margin-bottom:8px}
+.claimline{font-size:12px;color:#0C4A6E;line-height:1.8}
+.ciitem{background:#fff;border-radius:8px;padding:11px 12px;margin-bottom:6px;box-shadow:0 2px 8px rgba(15,38,69,0.08);display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.ciitem.done{background:#E8F5E9}
+.chkb{width:20px;height:20px;border-radius:5px;border:2px solid #ADB5BD;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px}
+.ciitem.done .chkb{background:#1B7A3E;border-color:#1B7A3E;color:#fff}
+.chklbl{font-size:13px;line-height:1.4}
+.ciitem.done .chklbl{color:#1B7A3E;text-decoration:line-through;opacity:0.75}
+.sghdr{background:#0F2645;color:#fff;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin:12px 0 6px}
+.pcard{background:#fff;border-radius:12px;padding:12px;box-shadow:0 2px 8px rgba(15,38,69,0.08);margin-bottom:12px}
+.pctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pclbl{font-size:12px;font-weight:600}
+.pcnum{font-size:18px;font-weight:700;color:#2E6DB4}
+.pcbar{height:6px;background:#E9ECEF;border-radius:6px;overflow:hidden}
+.pcfill{height:100%;background:#2E6DB4;border-radius:6px}
+.notee{background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px;box-shadow:0 2px 8px rgba(15,38,69,0.08);border-left:3px solid #2E6DB4}
+.ndate{font-size:10px;color:#6C757D;margin-bottom:3px}
+.ntext{font-size:12px;line-height:1.6}
+.anbox{background:#fff;border-radius:12px;padding:12px;box-shadow:0 2px 8px rgba(15,38,69,0.08);margin-bottom:10px}
+.anbox textarea{width:100%;border:1.5px solid #E9ECEF;border-radius:8px;padding:8px 10px;font-size:12px;resize:none;outline:none;min-height:70px;font-family:inherit}
+.bcard{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(15,38,69,0.08);margin-bottom:12px;border:2px solid #E9ECEF}
+.bcard.ready{border-color:#1B7A3E;background:#E8F5E9}
+.btitle{font-size:14px;font-weight:700;margin-bottom:5px}
+.bdesc{font-size:12px;color:#6C757D;line-height:1.6;margin-bottom:12px}
+.bch{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #E9ECEF;cursor:pointer}
+.bch:last-of-type{border-bottom:none}
+.bch input{width:16px;height:16px;accent-color:#1B7A3E;cursor:pointer}
+.bch label{font-size:12px;cursor:pointer;line-height:1.4}
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid #E9ECEF;display:flex;z-index:100}
+.bni{flex:1;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:#ADB5BD;font-size:10px;font-weight:600;text-transform:uppercase}
+.bni.on{color:#0F2645}
+.bnico{font-size:20px;line-height:1}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#0F2645;color:#fff;padding:10px 18px;border-radius:50px;font-size:12px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modalbg{display:none;position:fixed;inset:0;background:rgba(15,38,69,0.6);z-index:300;align-items:flex-end;justify-content:center}
+.modalbg.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:520px;position:relative}
+.modaltitle{font-size:16px;font-weight:700;margin-bottom:6px}
+.modaldesc{font-size:12px;color:#6C757D;margin-bottom:14px;line-height:1.6}
+.modalclose{position:absolute;top:14px;right:14px;font-size:18px;cursor:pointer;color:#6C757D;background:none;border:none}
+.empty{text-align:center;padding:40px;color:#6C757D;font-size:13px}
+</style>
+</head>
+<body>
+  <nav class="topnav">
+  <div style="display:flex;align-items:center">
+    <div class="mark">V</div>
+    <div><div class="appname">Veritas</div><div class="appsub">Field App</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="badge" id="cnt">—</span>
+    <button class="syncbtn" onclick="syncJobs()">↻</button>
+  </div>
+</nav>
+
+<div class="screen active" id="s-setup">
+  <div class="setup">
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="bigmark">V</div>
+      <div class="setuptitle">Veritas Field App</div>
+      <div class="setupsub">One app for all your jobs — remodel, roof and claims.</div>
+    </div>
+    <div class="scard">
+      <h3>Step 1 - Connect to Job Board</h3>
+      <p>Paste your Google Apps Script Web App URL below.</p>
+      <input class="sinput" id="urlIn" type="text" placeholder="https://script.google.com/macros/s/..."/>
+      <h3 style="margin-top:12px">Step 2 - Your Details</h3>
+      <p>Enter your name and initials. These stamp your notes automatically.</p>
+      <input class="sinput" id="nameIn" type="text" placeholder="Full name (e.g. Patrick Bryant)"/>
+      <input class="sinput" id="initIn" type="text" placeholder="Initials (e.g. PB)" maxlength="4"/>
+      <button class="btn btn-primary" onclick="connect()">Connect and Load Jobs</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="s-list">
+  <div class="syncbar" id="syncbar">Tap the arrow to sync with Job Board</div>
+  <div class="sumrow">
+    <div class="sumc"><div class="sumnum" id="sr">—</div><div class="sumlbl">Remodel</div></div>
+    <div class="sumc ro"><div class="sumnum" id="sro">—</div><div class="sumlbl">Roof</div></div>
+    <div class="sumc cl"><div class="sumnum" id="scl">—</div><div class="sumlbl">Claims</div></div>
+    <div class="sumc r"><div class="sumnum" id="sst">—</div><div class="sumlbl">Attention</div></div>
+  </div>
+  <div class="srchw"><input class="srchin" id="srchin" placeholder="Search address or client..." oninput="filterJobs()"></div>
+  <div class="pills">
+    <div class="pill on" onclick="setF('all',this)">All Jobs</div>
+    <div class="pill" onclick="setF('remodel',this,'remodel')">Remodel</div>
+    <div class="pill" onclick="setF('roof',this,'roof')">Roof</div>
+    <div class="pill" onclick="setF('claim',this,'claims')">Claims</div>
+    <div class="pill" onclick="setF('stalled',this,'stalled')">Stalled</div>
+    <div class="pill" onclick="setF('attention',this,'attention')">Attention</div>
+    <div class="pill" onclick="setF('complete',this)">Ready to Bill</div>
+  </div>
+  <div class="jlist" id="jlist"><div class="empty">Loading jobs...</div></div>
+</div>
+
+<div class="screen" id="s-detail">
+  <div class="dhdr" id="dhdr"></div>
+  <div class="dtabs">
+    <div class="dtab on" onclick="swTab('info',this)">Info</div>
+    <div class="dtab" onclick="swTab('checklist',this)">Checklist</div>
+    <div class="dtab" onclick="swTab('notes',this)">Notes</div>
+    <div class="dtab" onclick="swTab('billing',this)">Billing</div>
+  </div>
+  <div class="dbody" id="dbody"></div>
+</div>
+
+<nav class="bnav">
+  <div class="bni on" onclick="showList()"><div class="bnico">📋</div><div>Jobs</div></div>
+  <div class="bni" onclick="toast('More features coming soon!')"><div class="bnico">📊</div><div>Reports</div></div>
+</nav>
+
+<div class="toast" id="toast"></div>
+<div class="modalbg" id="mb">
+  <div class="modal">
+    <button class="modalclose" onclick="closeModal()">&#x2715;</button>
+    <div class="modaltitle">Send Billing Notification</div>
+    <div class="modaldesc">This will notify accounting@veritasccg.com and billing@veritasccg.com and update the Job Board.</div>
+    <div id="mname" style="font-weight:700;font-size:13px;margin-bottom:12px"></div>
+    <button class="btn btn-success" onclick="confirmBill()">Confirm - Send Notification</button>
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+<script>
+const REMODEL_STAGES=[
+  {s:'Stage 1 - Handoff and Setup',i:['Signed contract saved in Google Drive','Job added to Google Sheets Job Board','Client contacted within 24 hours','Deposit invoice sent if required','Permit pulled and posted on site if required','Work order created and shared with PM']},
+  {s:'Stage 2 - Pre-Work and Kickoff',i:['Pre-work walkthrough completed with subs','Scope and expectations confirmed with subs','Before photos taken - all affected areas','Before photos uploaded','Material order placed and delivery confirmed','Client notified of start date']},
+  {s:'Stage 3 - Active Work',i:['Daily photos uploaded','Daily status update submitted to Sam','Workmanship and safety audited on site','All delays and issues logged same day','Sub and client communications documented']},
+  {s:'Stage 4 - Completion and Closeout',i:['All work completed per approved scope','Punch list completed','Jobsite cleaned - debris removed and mag sweep done','All unused materials returned within 48 hours','After photos taken and uploaded','Final client walkthrough completed','Client satisfaction confirmed in writing']}
+];
+const ROOF_STAGES=[
+  {s:'Stage 1 - Inspection and Estimate',i:['Roof inspection completed','All damage documented with photos','Xactimate or manual estimate prepared','Estimate reviewed and approved','Contract signed by client','Deposit collected if required']},
+  {s:'Stage 2 - Scheduling and Materials',i:['Job scheduled on production calendar','Materials ordered - shingles, underlayment, flashing','Delivery date confirmed','Permit pulled if required','Client notified of start date','Crew assigned and confirmed']},
+  {s:'Stage 3 - Installation',i:['Old roof removed and disposed','Decking inspected - damage noted and repaired','Underlayment installed','Drip edge installed','Shingles installed per manufacturer specs','Flashing installed around all penetrations','Ridge cap installed','Gutters checked and cleared','Site cleaned and mag sweep completed']},
+  {s:'Stage 4 - Closeout and Billing',i:['Final inspection completed by PM','After photos taken and uploaded','Client walkthrough completed','Client satisfaction confirmed in writing','All sub and supplier invoices submitted','Warranty information provided to client']}
+];
+
+function getStages(type){return(type==='remodel')?REMODEL_STAGES:ROOF_STAGES;}
+function getAllItems(type){return getStages(type).flatMap(s=>s.i);}
+
+let jobs=[],f='all',q='',jidx=null;
+let url=localStorage.getItem('vAppUrl')||'';
+let uI=localStorage.getItem('vAppInit')||'';
+let uN=localStorage.getItem('vAppName')||'';
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+window.onload=()=>{url&&uI?(show('s-list'),syncJobs()):show('s-setup');};
+
+function connect(){
+  const u=document.getElementById('urlIn').value.trim();
+  const n=document.getElementById('nameIn').value.trim();
+  const i=document.getElementById('initIn').value.trim().toUpperCase();
+  if(!u||!u.includes('script.google.com')){toast('Please paste a valid Apps Script URL');return;}
+  if(!n||!i){toast('Please enter your name and initials');return;}
+  url=u;uN=n;uI=i;
+  localStorage.setItem('vAppUrl',u);
+  localStorage.setItem('vAppName',n);
+  localStorage.setItem('vAppInit',i);
+  show('s-list');syncJobs();
+}
+
+function syncJobs(){
+  if(!url){show('s-setup');return;}
+  document.getElementById('syncbar').textContent='Syncing with Job Board...';
+  fetch(url+'?action=getJobs').then(r=>r.json()).then(d=>{
+    if(d.error)throw new Error(d.error);
+    jobs=d.jobs;
+    document.getElementById('syncbar').textContent='Last synced: '+new Date(d.timestamp).toLocaleTimeString();
+    document.getElementById('cnt').textContent=jobs.length;
+    renderList();
+  }).catch(e=>{toast('Sync failed: '+e.message);document.getElementById('syncbar').textContent='Sync failed';});
+}
+
+function getCardClass(j){
+  if(j.readyToBill)return'complete';
+  if(j.status==='stalled')return'stalled';
+  if(j.status==='attention')return'attention';
+  if(j.type==='claim')return'claim';
+  if(j.type==='roof')return'roof';
+  return'remodel';
+}
+
+function renderList(){
+  const fl=jobs.filter(j=>{
+    let mf=false;
+    if(f==='all')mf=true;
+    else if(f==='complete')mf=j.readyToBill;
+    else if(f==='stalled')mf=j.status==='stalled'&&!j.readyToBill;
+    else if(f==='attention')mf=j.status==='attention'&&!j.readyToBill;
+    else if(f==='remodel')mf=j.type==='remodel'&&!j.readyToBill;
+    else if(f==='roof')mf=j.type==='roof'&&!j.readyToBill;
+    else if(f==='claim')mf=j.type==='claim';
+    const ms=!q||j.address.toLowerCase().includes(q)||(j.client||'').toLowerCase().includes(q)||(j.scope||'').toLowerCase().includes(q);
+    return mf&&ms;
+  });
+  document.getElementById('sr').textContent=jobs.filter(j=>j.type==='remodel'&&!j.readyToBill).length;
+  document.getElementById('sro').textContent=jobs.filter(j=>j.type==='roof'&&!j.readyToBill).length;
+  document.getElementById('scl').textContent=jobs.filter(j=>j.type==='claim').length;
+  document.getElementById('sst').textContent=jobs.filter(j=>(j.status==='stalled'||j.status==='attention')&&!j.readyToBill).length;
+  const el=document.getElementById('jlist');
+  if(!fl.length){el.innerHTML='<div class="empty">No jobs match</div>';return;}
+  el.innerHTML=fl.map(j=>{
+    const ri=jobs.indexOf(j);
+    const cc=getCardClass(j);
+    const ALL=getAllItems(j.type==='remodel'?'remodel':'roof');
+    const p=Math.round(((j.completed||[]).length/ALL.length)*100);
+    const d=j.daysOld||0;
+    const ac=d>120?'urg':d>60?'warn':'ok';
+    const n=((j.notes||[])[0]||'').replace(/^\d{2}\/\d{2}\/\d{2} - [A-Z]+ - /,'');
+    const typeTag=j.type==='claim'?'<span class="tag claim">Claim</span>':j.type==='roof'?'<span class="tag roof">Roof</span>':'<span class="tag remodel">Remodel</span>';
+    const statusTag=j.status==='stalled'?'<span class="tag stalled">Stalled</span>':j.status==='attention'?'<span class="tag attention">Attention</span>':'';
+    const rtbTag=j.readyToBill?'<span class="tag complete">Ready to Bill</span>':'';
+    return `<div class="jc ${cc}" onclick="openJob(${ri})">
+      <div class="jtop"><div class="jaddr">${j.address||j.scope}</div><div class="jamt">${j.amount||''}</div></div>
+      <div class="jclient">${j.client||''}</div>
+      <div class="jtags">${typeTag}${d>0?`<span class="tag ${ac}">${d}d old</span>`:''}${statusTag}${rtbTag}</div>
+      ${n?`<div class="jnote">${n}</div>`:''}
+      <div class="jprog"><div class="jprogf" style="width:${p}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function setF(fn,el,cls){
+  f=fn;
+  document.querySelectorAll('.pill').forEach(p=>{p.classList.remove('on','remodel','roof','claims','stalled','attention');});
+  el.classList.add('on');
+  if(cls)el.classList.add(cls);
+  renderList();
+}
+function filterJobs(){q=document.getElementById('srchin').value.toLowerCase();renderList();}
+
+function openJob(idx){
+  jidx=idx;const j=jobs[idx];
+  const d=j.daysOld||0;
+  const ALL=getAllItems(j.type==='remodel'?'remodel':'roof');
+  document.getElementById('dhdr').innerHTML=`
+    <button class="bbtn" onclick="showList()">&#8592; All Jobs</button>
+    <div class="daddr">${j.address||j.scope}</div>
+    <div class="dclient">${j.client||''}</div>
+    <div class="dchips">
+      ${j.amount?`<div class="dchip">Contract<span>${j.amount}</span></div>`:''}
+      <div class="dchip">Type<span>${j.type==='claim'?'Claim':j.type==='roof'?'Roof':'Remodel'}</span></div>
+      ${d>0?`<div class="dchip">Age<span>${d}d</span></div>`:''}
+      <div class="dchip">Progress<span>${Math.round(((j.completed||[]).length/ALL.length)*100)}%</span></div>
+    </div>`;
+  document.querySelectorAll('.dtab').forEach((t,i)=>t.classList.toggle('on',i===0));
+  show('s-detail');renderTab('info');
+}
+
+function swTab(t,el){document.querySelectorAll('.dtab').forEach(x=>x.classList.remove('on'));el.classList.add('on');renderTab(t);}
+
+function renderTab(t){
+  const j=jobs[jidx];const b=document.getElementById('dbody');
+  const isClaim=j.type==='claim';
+  const stageType=j.type==='remodel'?'remodel':'roof';
+  const ALL=getAllItems(stageType);
+  if(t==='info'){
+    const claimBlock=isClaim&&j.claimInfo?`
+      <div class="slbl">Claim Information</div>
+      <div class="claimblock">
+        <div class="claimtitle">Insurance Claim Details</div>
+        ${j.claimInfo.split('\n').filter(l=>l.trim()).map(l=>`<div class="claimline">${l}</div>`).join('')}
+      </div>`:'';
+    b.innerHTML=`
+      <div class="slbl">Job Information</div>
+      <div class="iblc">
+        <div class="irow"><span class="ilbl">Address</span><span class="ival">${j.address||'—'}</span></div>
+        <div class="irow"><span class="ilbl">Type</span><span class="ival">${isClaim?'Insurance Claim':j.type==='roof'?'Roof Non-Claim':'Remodel'}</span></div>
+        <div class="irow"><span class="ilbl">Scope</span><span class="ival">${j.scope||'—'}</span></div>
+        <div class="irow"><span class="ilbl">Client</span><span class="ival">${j.client||'—'}</span></div>
+        <div class="irow"><span class="ilbl">Phone</span><span class="ival">${j.phone||'—'}</span></div>
+        <div class="irow"><span class="ilbl">Email</span><span class="ival">${j.email||'—'}</span></div>
+        <div class="irow"><span class="ilbl">Contract</span><span class="ival">${j.amount||'—'}</span></div>
+        <div class="irow"><span class="ilbl">Deposit</span><span class="ival">${j.deposit||'—'}</span></div>
+        <div class="irow"><span class="ilbl">Status</span><span class="ival">${j.status}</span></div>
+      </div>
+      ${claimBlock}
+      <div class="slbl">Latest Note</div>
+      <div class="iblc"><div class="irow"><span style="font-size:12px;color:#6C757D">${(j.notes||[])[0]||'No notes yet.'}</span></div></div>`;
+  }
+  else if(t==='checklist'){
+    const done=new Set(j.completed||[]);const p=Math.round((done.size/ALL.length)*100);
+    let h=`<div class="pcard"><div class="pctop"><span class="pclbl">Stage Gate Progress</span><span class="pcnum">${done.size}/${ALL.length}</span></div><div class="pcbar"><div class="pcfill" style="width:${p}%"></div></div></div>`;
+    getStages(stageType).forEach(sg=>{h+=`<div class="sghdr">${sg.s}</div>`;sg.i.forEach(item=>{const ck=done.has(item);h+=`<div class="ciitem ${ck?'done':''}" onclick="tChk(${JSON.stringify(item)})"><div class="chkb">${ck?'&#10003;':''}</div><div class="chklbl">${item}</div></div>`;});});
+    b.innerHTML=h;
+  }
+  else if(t==='notes'){
+    const ns=j.notes||[];
+    b.innerHTML=`<div class="anbox"><div class="slbl" style="margin-top:0">Add Note</div><textarea id="ntxt" placeholder="Type your update..."></textarea><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="addNote()">+ Add Note</button></div><div class="slbl">Notes History</div>${ns.length?ns.map(n=>{const m=n.match(/^(\d{2}\/\d{2}\/\d{2}) - ([A-Z]+) - (.+)$/s);return `<div class="notee"><div class="ndate">${m?m[1]+' | '+m[2]:'Note'}</div><div class="ntext">${m?m[3]:n}</div></div>`;}).join(''):'<div class="empty">No notes yet</div>'}`;
+  }
+  else if(t==='billing'){
+    const r=j.readyToBill;const ad=(j.completed||[]).length===ALL.length;
+    b.innerHTML=`<div class="bcard ${r?'ready':''}"><div class="btitle">${r?'Billing Notification Sent':'Ready to Bill Checklist'}</div><div class="bdesc">${r?'accounting@ and billing@veritasccg.com have been notified.':'Complete all items before sending the billing notification.'}</div>${r?`<div class="iblc"><div class="irow"><span class="ilbl">Notified</span><span class="ival">accounting@ & billing@</span></div><div class="irow"><span class="ilbl">Amount</span><span class="ival">${j.amount||'—'}</span></div></div>`:`<div><div class="bch"><input type="checkbox" id="bc1" ${ad?'checked':''}><label for="bc1">All ${ALL.length} stage gate items complete (${(j.completed||[]).length} done)</label></div><div class="bch"><input type="checkbox" id="bc2"><label for="bc2">Client final walkthrough completed</label></div><div class="bch"><input type="checkbox" id="bc3"><label for="bc3">Client satisfaction confirmed in writing</label></div><div class="bch"><input type="checkbox" id="bc4"><label for="bc4">All vendor and sub invoices submitted</label></div><div class="bch"><input type="checkbox" id="bc5"><label for="bc5">PM approved all work for billing</label></div></div><button class="btn btn-success" style="margin-top:12px" onclick="triggerBill()">Send Ready to Bill Notification</button>`}</div>`;
+  }
+}
+
+function tChk(item){const j=jobs[jidx];const c=new Set(j.completed||[]);c.has(item)?c.delete(item):c.add(item);j.completed=[...c];post({action:'updateGates',rowIndex:j.rowIndex,completed:j.completed,source:j.source}).then(()=>toast('Saved')).catch(()=>toast('Saved locally'));renderTab('checklist');}
+
+function addNote(){
+  const txt=document.getElementById('ntxt').value.trim();
+  if(!txt){toast('Please type a note first');return;}
+  const j=jobs[jidx];
+  const today=new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'});
+  const fmt=today+' - '+uI+' - '+txt;
+  post({action:'updateNote',rowIndex:j.rowIndex,note:txt,initials:uI,source:j.source}).then(()=>{if(!j.notes)j.notes=[];j.notes.unshift(fmt);toast('Note saved!');renderTab('notes');}).catch(()=>{if(!j.notes)j.notes=[];j.notes.unshift(fmt);toast('Saved locally');renderTab('notes');});
+}
+
+function triggerBill(){const j=jobs[jidx];document.getElementById('mname').textContent=(j.address||j.scope)+' - '+(j.amount||'');document.getElementById('mb').classList.add('open');}
+function closeModal(){document.getElementById('mb').classList.remove('open');}
+function confirmBill(){const j=jobs[jidx];closeModal();post({action:'triggerBilling',rowIndex:j.rowIndex,address:j.address||j.scope,amount:j.amount,source:j.source}).then(()=>{j.readyToBill=true;toast('Billing notification sent!');renderTab('billing');}).catch(()=>toast('Error - please try again'));}
+function post(p){return fetch(url,{method:'POST',body:JSON.stringify(p)}).then(r=>r.json());}
+function showList(){show('s-list');jidx=null;renderList();}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+</script>
+</body>
+</html>
