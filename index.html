@@ -1153,7 +1153,8 @@ function renderTab(tab) {
       html += `<div class="stage-header">${sg.stage}</div>`;
       sg.items.forEach(item => {
         const isChecked = checked.has(item);
-        html += `<div class="checklist-item ${isChecked?'checked':''}" onclick="toggleCheck(${JSON.stringify(item)})">
+        const safeItem = item.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        html += `<div class="checklist-item ${isChecked?'checked':''}" data-item="${safeItem}" onclick="toggleCheckEl(this)">
           <div class="check-box">${isChecked?'✓':''}</div>
           <div class="check-label">${item}</div>
         </div>`;
@@ -1242,25 +1243,39 @@ function setChecklistType(type) {
   renderTab('checklist');
 }
 
-function toggleCheck(item) {
+function toggleCheckEl(el) {
+  const item = el.getAttribute('data-item');
+  if (!item) return;
   const j = jobs[currentJobIdx];
   const jobId = j.rowIndex;
   const checked = getChecked(jobId);
 
   if (checked.has(item)) {
     checked.delete(item);
+    el.classList.remove('checked');
+    el.querySelector('.check-box').textContent = '';
   } else {
     checked.add(item);
+    el.classList.add('checked');
+    el.querySelector('.check-box').textContent = '✓';
   }
   saveChecked(jobId, checked);
 
-  // Save to Google Sheets
-  post({ action:'updateGates', rowIndex:jobId, completed:[...checked] })
-    .catch(() => {});
+  // Update progress bar without full re-render
+  const checklist = (checklistType==='roofing'?ROOFING_CHECKLIST:REMODEL_CHECKLIST);
+  const allItems = checklist.flatMap(s=>s.items);
+  const done = allItems.filter(i=>checked.has(i)).length;
+  const total = allItems.length;
+  const pct = Math.round((done/total)*100);
+  const fill = document.querySelector('.cp-fill');
+  const count = document.querySelector('.cp-count');
+  if (fill) fill.style.width = pct + '%';
+  if (count) count.textContent = done + '/' + total;
 
-  renderTab('checklist');
-  const allItems = (checklistType==='roofing'?ROOFING_CHECKLIST:REMODEL_CHECKLIST).flatMap(s=>s.items);
-  if (checked.has(item)) toast('✓ ' + item.substring(0,30)+'…');
+  // Save to Google Sheets in background
+  post({ action:'updateGates', rowIndex:jobId, completed:[...checked] }).catch(()=>{});
+
+  if (checked.has(item)) toast('✓ Checked off');
 }
 
 // ═══════════════════════════════════════════════════════════
