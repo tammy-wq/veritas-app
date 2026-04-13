@@ -1818,7 +1818,19 @@ async function uploadFileToDrive(file, folderId) {
     { method: 'POST', headers: { Authorization: 'Bearer ' + gdriveToken }, body: form }
   );
   const data = await res.json();
-  return data.id;
+  const fileId = data.id;
+
+  // Make file publicly viewable so it displays inline in the app
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + gdriveToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' })
+  });
+
+  return fileId;
 }
 
 function openLightbox(url, name, category) {
