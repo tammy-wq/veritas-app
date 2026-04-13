@@ -961,6 +961,8 @@ function syncJobs() {
     .then(data => {
       if (data.error) throw new Error(data.error);
       jobs = data.jobs;
+      // Load photos from sheet into local storage for each job
+      jobs.forEach(job => loadPhotosFromSheet(job));
       const t = new Date(data.timestamp);
       bar.textContent = 'Last synced: ' + t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
       updateSummary();
@@ -1710,6 +1712,39 @@ function saveJobPhoto(jobId, category, photoObj) {
   const photos = getJobPhotos(jobId, category);
   photos.unshift(photoObj);
   localStorage.setItem('photos_' + jobId + '_' + category, JSON.stringify(photos));
+  // Sync all photo categories to Google Sheets
+  syncPhotosToSheet(jobId);
+}
+
+function getAllJobPhotos(jobId) {
+  const categories = ['before', 'progress', 'after', 'other'];
+  const all = {};
+  categories.forEach(cat => {
+    all[cat] = getJobPhotos(jobId, cat);
+  });
+  return all;
+}
+
+function syncPhotosToSheet(jobId) {
+  const allPhotos = getAllJobPhotos(jobId);
+  post({ action: 'updatePhotos', rowIndex: jobId, photos: allPhotos }).catch(() => {});
+}
+
+function loadPhotosFromSheet(job) {
+  // Merge sheet photos into local storage — sheet is source of truth
+  if (!job.photos) return;
+  const categories = ['before', 'progress', 'after', 'other'];
+  categories.forEach(cat => {
+    const sheetPhotos = job.photos[cat] || [];
+    if (sheetPhotos.length > 0) {
+      // Merge: sheet photos win, keep any local-only ones not yet synced
+      const local = getJobPhotos(job.rowIndex, cat);
+      const sheetIds = new Set(sheetPhotos.map(p => p.id));
+      const localOnly = local.filter(p => !sheetIds.has(p.id));
+      const merged = [...sheetPhotos, ...localOnly];
+      localStorage.setItem('photos_' + job.rowIndex + '_' + cat, JSON.stringify(merged));
+    }
+  });
 }
 
 function openPhotoUpload(category) {
@@ -1978,6 +2013,9 @@ async function deletePhoto(category, photoIdx, fileId) {
   const photos = getJobPhotos(jobId, category);
   photos.splice(photoIdx, 1);
   localStorage.setItem('photos_' + jobId + '_' + category, JSON.stringify(photos));
+
+  // Sync deletion to Google Sheets
+  syncPhotosToSheet(jobId);
 
   // Delete from Google Drive
   if (fileId && isGDriveSignedIn()) {
