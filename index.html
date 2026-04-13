@@ -1727,8 +1727,6 @@ function getAllJobPhotos(jobId) {
 
 function syncPhotosToSheet(jobId) {
   const allPhotos = getAllJobPhotos(jobId);
-  // Strip base64 thumbnails before saving to Sheets — too large for a cell
-  // Other devices will generate their own thumbnails from the Drive URL
   const stripped = {};
   Object.keys(allPhotos).forEach(cat => {
     stripped[cat] = allPhotos[cat].map(p => ({
@@ -1739,12 +1737,16 @@ function syncPhotosToSheet(jobId) {
       uploadedBy:  p.uploadedBy,
     }));
   });
-  post({ action: 'updatePhotos', rowIndex: jobId, photos: stripped }).catch(() => {});
+  console.log('Syncing photos to sheet for row', jobId, JSON.stringify(stripped).substring(0,300));
+  post({ action: 'updatePhotos', rowIndex: jobId, photos: stripped })
+    .then(r => console.log('Photo sync response:', JSON.stringify(r)))
+    .catch(err => console.error('Photo sync FAILED:', err));
 }
 
 function loadPhotosFromSheet(job) {
   // Merge sheet photos into local storage — sheet is source of truth
-  if (!job.photos) return;
+  console.log('loadPhotosFromSheet for job', job.rowIndex, 'photos from sheet:', JSON.stringify(job.photos).substring(0,300));
+  if (!job.photos) { console.log('No photos on job object'); return; }
   const categories = ['before', 'progress', 'after', 'other'];
   categories.forEach(cat => {
     const sheetPhotos = job.photos[cat] || [];
