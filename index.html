@@ -465,7 +465,78 @@ html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(-
 /* ── LOADING ── */
 .loading { text-align: center; padding: 60px 24px; color: var(--text-muted); }
 .loading-spinner { font-size: 36px; animation: spin .8s linear infinite; display: block; margin-bottom: 16px; }
+
+/* ── PHOTOS ── */
+.photo-section-header {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--text-muted);
+  padding: 12px 0 8px; border-bottom: 1.5px solid var(--gray-200);
+  margin-bottom: 10px; display: flex; justify-content: space-between;
+  align-items: center;
+}
+.photo-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 6px; margin-bottom: 16px;
+}
+.photo-thumb {
+  aspect-ratio: 1; border-radius: var(--radius-sm);
+  object-fit: cover; cursor: pointer; background: var(--gray-100);
+  width: 100%;
+}
+.photo-upload-btn {
+  aspect-ratio: 1; border-radius: var(--radius-sm);
+  border: 2px dashed var(--gray-400); background: var(--gray-50);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; cursor: pointer; gap: 4px;
+  font-size: 11px; color: var(--text-muted); font-weight: 600;
+  transition: border-color .15s;
+}
+.photo-upload-btn:active { border-color: var(--blue); }
+.photo-upload-icon { font-size: 24px; line-height: 1; }
+.photo-lightbox {
+  display: none; position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.92); align-items: center;
+  justify-content: center; flex-direction: column;
+}
+.photo-lightbox.open { display: flex; }
+.photo-lightbox img {
+  max-width: 95vw; max-height: 80vh; border-radius: 8px;
+  object-fit: contain;
+}
+.lightbox-close {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(255,255,255,0.15); border: none; color: white;
+  width: 36px; height: 36px; border-radius: 50%; font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.lightbox-caption {
+  color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 12px;
+  text-align: center;
+}
+.google-signin-btn {
+  display: flex; align-items: center; gap: 10px;
+  background: white; border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  width: 100%; justify-content: center; margin-bottom: 12px;
+  color: var(--text);
+}
+.photo-empty {
+  text-align: center; padding: 30px 16px;
+  color: var(--text-muted);
+}
+.photo-empty-icon { font-size: 36px; margin-bottom: 8px; }
+.uploading-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(15,37,69,0.7);
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 12px;
+}
+.uploading-overlay.show { display: flex; }
+.uploading-spinner { font-size: 40px; animation: spin .8s linear infinite; }
+.uploading-text { color: white; font-size: 15px; font-weight: 600; }
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -598,6 +669,7 @@ html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(-
     <div class="detail-tab active" onclick="switchTab('info',this)">Info</div>
     <div class="detail-tab" onclick="switchTab('checklist',this)">Checklist</div>
     <div class="detail-tab" onclick="switchTab('assign',this)">Team</div>
+    <div class="detail-tab" onclick="switchTab('photos',this)">Photos</div>
     <div class="detail-tab" onclick="switchTab('notes',this)">Notes</div>
     <div class="detail-tab" onclick="switchTab('billing',this)">Billing</div>
   </div>
@@ -618,6 +690,23 @@ html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(-
     <button class="btn btn-ghost" style="margin-top:8px;" onclick="closeModal()">Cancel</button>
   </div>
 </div>
+
+
+<!-- PHOTO LIGHTBOX -->
+<div class="photo-lightbox" id="photoLightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="Job photo"/>
+  <div class="lightbox-caption" id="lightboxCaption"></div>
+</div>
+
+<!-- UPLOADING OVERLAY -->
+<div class="uploading-overlay" id="uploadingOverlay">
+  <div class="uploading-spinner">📷</div>
+  <div class="uploading-text" id="uploadingText">Uploading photo…</div>
+</div>
+
+<!-- HIDDEN FILE INPUT -->
+<input type="file" id="photoFileInput" accept="image/*" multiple style="display:none;" onchange="handlePhotoFiles(event)"/>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -731,6 +820,14 @@ let currentSearch = '';
 let currentJobIdx = null;
 let currentTab    = 'info';
 let checklistType = 'roofing'; // 'roofing' or 'remodel'
+
+// Google Drive photo config
+const GDRIVE_CLIENT_ID = '47328170384-7g5dsdn6k08tt8toqv2k8o1asm5k9i85.apps.googleusercontent.com';
+const GDRIVE_SCOPES    = 'https://www.googleapis.com/auth/drive.file';
+let   gdriveToken      = localStorage.getItem('gdriveToken') || '';
+let   gdriveExpiry     = parseInt(localStorage.getItem('gdriveExpiry') || '0');
+let   currentPhotoCategory = 'progress'; // before / progress / after / other
+let   pendingPhotoJobId    = null;
 
 // Per-job checklist state stored locally
 function getChecked(jobId) {
@@ -1288,6 +1385,55 @@ function renderTab(tab) {
     `;
   }
 
+  else if (tab === 'photos') {
+    const j = jobs[currentJobIdx];
+    const jobId = j.rowIndex;
+    const jobAddr = j.address || 'Job';
+    const isSignedIn = isGDriveSignedIn();
+
+    const categories = [
+      { key:'before',   label:'Before Photos',   icon:'🏚' },
+      { key:'progress', label:'Progress Photos',  icon:'🔨' },
+      { key:'after',    label:'After Photos',     icon:'🏠' },
+      { key:'other',    label:'Other / Documents',icon:'📎' },
+    ];
+
+    let html = '';
+
+    if (!isSignedIn) {
+      html = `
+        <div style="background:var(--blue-light);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:16px;">
+          <div style="font-size:36px;margin-bottom:8px;">📷</div>
+          <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;">Connect Google Drive</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Sign in once to upload and view photos directly in your Veritas Google Drive.</div>
+          <button class="google-signin-btn" onclick="signInGDrive()">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Sign in with Google
+          </button>
+        </div>`;
+    } else {
+      categories.forEach(cat => {
+        const photos = getJobPhotos(jobId, cat.key);
+        html += `
+          <div class="photo-section-header">
+            <span>${cat.icon} ${cat.label}</span>
+            <button onclick="openPhotoUpload('${cat.key}')" style="background:var(--blue);color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;">+ Add</button>
+          </div>`;
+        if (photos.length === 0) {
+          html += `<div class="photo-empty"><div class="photo-empty-icon">${cat.icon}</div><div style="font-size:13px;">No ${cat.label.toLowerCase()} yet</div></div>`;
+        } else {
+          html += '<div class="photo-grid">';
+          photos.forEach((p, pi) => {
+            html += `<img class="photo-thumb" src="${p.thumb || p.url}" alt="${p.name}" onclick="openLightbox('${p.url}','${p.name}','${cat.label}')"/>`;
+          });
+          html += '</div>';
+        }
+      });
+    }
+
+    body.innerHTML = html;
+  }
+
   else if (tab === 'billing') {
     const ready = j.readyToBill;
     const jobId = j.rowIndex;
@@ -1508,6 +1654,181 @@ function removeSub(idx) {
   saveSubs(j.rowIndex, subs);
   toast('Subcontractor removed');
   renderTab('info');
+}
+
+// ═══════════════════════════════════════════════════════════
+// GOOGLE DRIVE PHOTO FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+function isGDriveSignedIn() {
+  return gdriveToken && Date.now() < gdriveExpiry;
+}
+
+function signInGDrive() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPES,
+    callback: (resp) => {
+      if (resp.access_token) {
+        gdriveToken  = resp.access_token;
+        gdriveExpiry = Date.now() + (resp.expires_in * 1000);
+        localStorage.setItem('gdriveToken',  gdriveToken);
+        localStorage.setItem('gdriveExpiry', gdriveExpiry);
+        toast('Connected to Google Drive ✓');
+        renderTab('photos');
+      }
+    }
+  });
+  client.requestAccessToken();
+}
+
+function getJobPhotos(jobId, category) {
+  try {
+    return JSON.parse(localStorage.getItem('photos_' + jobId + '_' + category) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveJobPhoto(jobId, category, photoObj) {
+  const photos = getJobPhotos(jobId, category);
+  photos.unshift(photoObj);
+  localStorage.setItem('photos_' + jobId + '_' + category, JSON.stringify(photos));
+}
+
+function openPhotoUpload(category) {
+  currentPhotoCategory = category;
+  pendingPhotoJobId    = jobs[currentJobIdx].rowIndex;
+  document.getElementById('photoFileInput').click();
+}
+
+async function handlePhotoFiles(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+  if (!isGDriveSignedIn()) { toast('Please sign in to Google Drive first'); return; }
+
+  const j = jobs[currentJobIdx];
+  const overlay = document.getElementById('uploadingOverlay');
+  const uploadText = document.getElementById('uploadingText');
+  overlay.classList.add('show');
+
+  try {
+    // Get or create job folder in Drive
+    const folderName = j.address + ' — ' + (j.scope || 'Job');
+    const folderId = await getOrCreateFolder(folderName, currentPhotoCategory);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      uploadText.textContent = `Uploading ${i+1} of ${files.length}…`;
+
+      const fileId = await uploadFileToDrive(file, folderId);
+      const url    = `https://drive.google.com/uc?id=${fileId}&export=view`;
+      const thumb  = `https://drive.google.com/thumbnail?id=${fileId}&sz=w300`;
+
+      saveJobPhoto(pendingPhotoJobId, currentPhotoCategory, {
+        id: fileId, name: file.name,
+        url, thumb,
+        uploaded: new Date().toISOString(),
+        uploadedBy: userInitials
+      });
+    }
+
+    toast(`${files.length} photo${files.length>1?'s':''} uploaded ✓`);
+  } catch(err) {
+    toast('Upload failed — check Drive connection');
+    console.error(err);
+  } finally {
+    overlay.classList.remove('show');
+    event.target.value = '';
+    renderTab('photos');
+  }
+}
+
+async function getOrCreateFolder(jobName, category) {
+  const catLabels = { before:'Before Photos', progress:'Progress Photos', after:'After Photos', other:'Other' };
+  const catName = catLabels[category] || category;
+
+  // Look for Veritas Jobs root folder
+  let rootId = localStorage.getItem('gdrive_root_folder');
+  if (!rootId) {
+    const rootRes = await gdriveSearch(`name='Veritas Job Photos' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    if (rootRes.files.length > 0) {
+      rootId = rootRes.files[0].id;
+    } else {
+      rootId = await createDriveFolder('Veritas Job Photos', null);
+    }
+    localStorage.setItem('gdrive_root_folder', rootId);
+  }
+
+  // Job folder
+  const jobKey = 'gdrive_job_' + pendingPhotoJobId;
+  let jobFolderId = localStorage.getItem(jobKey);
+  if (!jobFolderId) {
+    const jobRes = await gdriveSearch(`name='${jobName.replace(/'/g,"\'")}' and '${rootId}' in parents and trashed=false`);
+    if (jobRes.files.length > 0) {
+      jobFolderId = jobRes.files[0].id;
+    } else {
+      jobFolderId = await createDriveFolder(jobName, rootId);
+    }
+    localStorage.setItem(jobKey, jobFolderId);
+  }
+
+  // Category subfolder
+  const catKey = 'gdrive_cat_' + pendingPhotoJobId + '_' + category;
+  let catFolderId = localStorage.getItem(catKey);
+  if (!catFolderId) {
+    const catRes = await gdriveSearch(`name='${catName}' and '${jobFolderId}' in parents and trashed=false`);
+    if (catRes.files.length > 0) {
+      catFolderId = catRes.files[0].id;
+    } else {
+      catFolderId = await createDriveFolder(catName, jobFolderId);
+    }
+    localStorage.setItem(catKey, catFolderId);
+  }
+
+  return catFolderId;
+}
+
+async function gdriveSearch(q) {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,
+    { headers: { Authorization: 'Bearer ' + gdriveToken } }
+  );
+  return res.json();
+}
+
+async function createDriveFolder(name, parentId) {
+  const meta = { name, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) meta.parents = [parentId];
+  const res = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + gdriveToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(meta)
+  });
+  const data = await res.json();
+  return data.id;
+}
+
+async function uploadFileToDrive(file, folderId) {
+  const meta = JSON.stringify({ name: file.name, parents: [folderId] });
+  const form = new FormData();
+  form.append('metadata', new Blob([meta], { type: 'application/json' }));
+  form.append('file', file);
+
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    { method: 'POST', headers: { Authorization: 'Bearer ' + gdriveToken }, body: form }
+  );
+  const data = await res.json();
+  return data.id;
+}
+
+function openLightbox(url, name, category) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightboxCaption').textContent = category + ' — ' + name;
+  document.getElementById('photoLightbox').classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('photoLightbox').classList.remove('open');
 }
 
 // ═══════════════════════════════════════════════════════════
