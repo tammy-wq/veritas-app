@@ -1727,7 +1727,19 @@ function getAllJobPhotos(jobId) {
 
 function syncPhotosToSheet(jobId) {
   const allPhotos = getAllJobPhotos(jobId);
-  post({ action: 'updatePhotos', rowIndex: jobId, photos: allPhotos }).catch(() => {});
+  // Strip base64 thumbnails before saving to Sheets — too large for a cell
+  // Other devices will generate their own thumbnails from the Drive URL
+  const stripped = {};
+  Object.keys(allPhotos).forEach(cat => {
+    stripped[cat] = allPhotos[cat].map(p => ({
+      id:          p.id,
+      name:        p.name,
+      url:         p.url,
+      uploaded:    p.uploaded,
+      uploadedBy:  p.uploadedBy,
+    }));
+  });
+  post({ action: 'updatePhotos', rowIndex: jobId, photos: stripped }).catch(() => {});
 }
 
 function loadPhotosFromSheet(job) {
@@ -1737,12 +1749,26 @@ function loadPhotosFromSheet(job) {
   categories.forEach(cat => {
     const sheetPhotos = job.photos[cat] || [];
     if (sheetPhotos.length > 0) {
-      // Merge: sheet photos win, keep any local-only ones not yet synced
       const local = getJobPhotos(job.rowIndex, cat);
+      const localMap = {};
+      local.forEach(p => { localMap[p.id] = p; });
+
+      // Merge: use local version if available (has thumb), else use sheet version
+      // For sheet-only photos, build a working thumb URL
+      const merged = sheetPhotos.map(sp => {
+        if (localMap[sp.id]) return localMap[sp.id]; // local has thumb, use it
+        // Build thumb from Drive using lh3.googleusercontent.com proxy (no auth needed)
+        return {
+          ...sp,
+          thumb: `https://lh3.googleusercontent.com/d/${sp.id}=w300`
+        };
+      });
+
+      // Add any local-only photos not yet in sheet
       const sheetIds = new Set(sheetPhotos.map(p => p.id));
       const localOnly = local.filter(p => !sheetIds.has(p.id));
-      const merged = [...sheetPhotos, ...localOnly];
-      localStorage.setItem('photos_' + job.rowIndex + '_' + cat, JSON.stringify(merged));
+      const final = [...merged, ...localOnly];
+      localStorage.setItem('photos_' + job.rowIndex + '_' + cat, JSON.stringify(final));
     }
   });
 }
