@@ -396,6 +396,13 @@ html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(-
 .billing-check { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; text-align: left; font-size: 13px; }
 .billing-check input { width: 16px; height: 16px; }
 
+/* ── ADD SUB BOX ── */
+.add-sub-box {
+  background: var(--blue-light); border-radius: var(--radius);
+  padding: 14px; margin-top: 6px; margin-bottom: 6px;
+  border: 1.5px solid var(--blue-mid);
+}
+
 /* ── ASSIGN PANEL ── */
 .assign-panel {
   background: var(--white); border-radius: var(--radius);
@@ -741,6 +748,15 @@ function getAssignments(jobId) {
 }
 function saveAssignments(jobId, arr) {
   localStorage.setItem('asgn_' + jobId, JSON.stringify(arr));
+}
+
+// Per-job subcontractors stored locally
+function getSubs(jobId) {
+  try { return JSON.parse(localStorage.getItem('subs_' + jobId) || '[]'); }
+  catch(e) { return []; }
+}
+function saveSubs(jobId, arr) {
+  localStorage.setItem('subs_' + jobId, JSON.stringify(arr));
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1109,6 +1125,18 @@ function renderTab(tab) {
   const body = document.getElementById('detailBody');
 
   if (tab === 'info') {
+    const subs = getSubs(j.rowIndex);
+    const subsHtml = subs.length
+      ? subs.map((s,i) => `
+          <div class="info-row" style="align-items:flex-start;">
+            <div>
+              <div class="lbl" style="font-weight:600;color:var(--text);">${s.trade}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${s.company}${s.contact?' · '+s.contact:''}</div>
+            </div>
+            <button onclick="removeSub(${i})" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:0;line-height:1;">×</button>
+          </div>`).join('')
+      : '<div class="info-row"><span style="font-size:13px;color:var(--text-muted);">No subcontractors added yet</span></div>';
+
     body.innerHTML = `
       <div class="section-label">Job Details</div>
       <div class="info-block">
@@ -1117,6 +1145,22 @@ function renderTab(tab) {
         <div class="info-row"><span class="lbl">Scope</span><span class="val">${j.scope || '—'}</span></div>
         <div class="info-row"><span class="lbl">Status</span><span class="val">${j.readyToBill ? '✅ Ready to Bill' : j.status.charAt(0).toUpperCase()+j.status.slice(1)}</span></div>
       </div>
+
+      <div class="section-label">Assigned Subcontractors</div>
+      <div class="info-block" id="subsList">${subsHtml}</div>
+      <div class="add-sub-box" id="addSubBox" style="display:none;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <input class="setup-input" id="subTrade" placeholder="Trade (e.g. Framing, Electrical, Plumbing)" style="margin-bottom:0;font-size:13px;padding:10px 12px;"/>
+          <input class="setup-input" id="subCompany" placeholder="Company or Subcontractor Name" style="margin-bottom:0;font-size:13px;padding:10px 12px;"/>
+          <input class="setup-input" id="subContact" placeholder="Contact / Phone (optional)" style="margin-bottom:0;font-size:13px;padding:10px 12px;"/>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="saveSub()" style="flex:1;">Add Sub</button>
+            <button class="btn btn-ghost btn-sm" onclick="cancelAddSub()" style="flex:1;">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="addSubBtn" onclick="showAddSub()" style="width:100%;margin-top:6px;margin-bottom:16px;">+ Add Subcontractor</button>
+
       <div class="section-label">Financials</div>
       <div class="info-block">
         <div class="info-row"><span class="lbl">Contract Amount</span><span class="val">${j.amount || '—'}</span></div>
@@ -1342,6 +1386,45 @@ function confirmBilling() {
 
 function closeModal() {
   document.getElementById('billingModal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SUBCONTRACTOR ACTIONS
+// ═══════════════════════════════════════════════════════════
+function showAddSub() {
+  document.getElementById('addSubBox').style.display = 'block';
+  document.getElementById('addSubBtn').style.display = 'none';
+  document.getElementById('subTrade').focus();
+}
+
+function cancelAddSub() {
+  document.getElementById('addSubBox').style.display = 'none';
+  document.getElementById('addSubBtn').style.display = '';
+  document.getElementById('subTrade').value = '';
+  document.getElementById('subCompany').value = '';
+  document.getElementById('subContact').value = '';
+}
+
+function saveSub() {
+  const trade   = document.getElementById('subTrade').value.trim();
+  const company = document.getElementById('subCompany').value.trim();
+  const contact = document.getElementById('subContact').value.trim();
+  if (!trade || !company) { toast('Please enter trade and company name'); return; }
+  const j = jobs[currentJobIdx];
+  const subs = getSubs(j.rowIndex);
+  subs.push({ trade, company, contact });
+  saveSubs(j.rowIndex, subs);
+  toast('Subcontractor added ✓');
+  renderTab('info');
+}
+
+function removeSub(idx) {
+  const j = jobs[currentJobIdx];
+  const subs = getSubs(j.rowIndex);
+  subs.splice(idx, 1);
+  saveSubs(j.rowIndex, subs);
+  toast('Subcontractor removed');
+  renderTab('info');
 }
 
 // ═══════════════════════════════════════════════════════════
