@@ -867,8 +867,10 @@ function getSubs(jobId) {
 }
 function saveSubs(jobId, arr) {
   localStorage.setItem('subs_' + jobId, JSON.stringify(arr));
-  // Write back to Google Sheets
-  post({ action:'updateSubs', rowIndex:jobId, subs:arr }).catch(()=>{});
+  // Write back to Google Sheets — include board so correct sheet gets updated
+  const jobForSubs = jobs[currentJobIdx];
+  const board = jobForSubs ? (jobForSubs.board || 'master') : 'master';
+  post({ action:'updateSubs', rowIndex:jobId, subs:arr, board:board }).catch(()=>{});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1128,6 +1130,7 @@ function renderList() {
     const badge = j.readyToBill ? 'complete' : j.status;
     const badgeLabel = j.readyToBill ? 'Ready $' : j.status.charAt(0).toUpperCase()+j.status.slice(1);
     const latestNote = j.notes && j.notes[0] ? j.notes[0].replace(/^\d{2}\/\d{2}\/\d{2}\s+\d{1,2}:\d{2}\s+[AP]M\s+-\s+\w+\s+-\s+/, '').replace(/^\d{2}\/\d{2}\/\d{2}\s+-\s+\w+\s+-\s+/, '') : '';
+    const boardTag = j.board === 'storm' ? '<span style="font-size:9px;font-weight:700;background:var(--amber-pale);color:var(--amber);padding:2px 6px;border-radius:8px;margin-left:6px;">CLAIM</span>' : '';
     const asgn = getAssignments(j.rowIndex);
     const asgnHtml = asgn.length ? asgn.map(a => {
       const member = TEAM.find(t=>t.initials===a);
@@ -1139,7 +1142,7 @@ function renderList() {
       <div class="card-inner">
         <div class="card-top">
           <div>
-            <div class="card-address">${j.address || '—'}</div>
+            <div class="card-address">${j.address || '—'}${boardTag}</div>
             <div class="card-scope">${j.scope || j.client || ''}</div>
           </div>
           <div class="card-badge badge-${badge}">${badgeLabel}</div>
@@ -1207,13 +1210,8 @@ function openJob(idx) {
   currentJobIdx = idx;
   currentTab = 'info';
   const j = jobs[idx];
-  // Auto-detect checklist type from scope
-  const scope = (j.scope || '').toLowerCase();
-  if (scope.includes('roof') || scope.includes('shingle')) {
-    checklistType = 'roofing';
-  } else {
-    checklistType = 'remodel';
-  }
+  // Auto-detect checklist type from jobType field
+  checklistType = (j.jobType === 'roofing') ? 'roofing' : 'remodel';
 
   // Render header
   const statusColor = j.readyToBill ? '#16A34A' : j.status === 'stalled' ? '#D97706' : j.status === 'attention' ? '#DC2626' : '#2563EB';
@@ -1266,14 +1264,34 @@ function renderTab(tab) {
           </div>`).join('')
       : '<div class="info-row"><span style="font-size:13px;color:var(--text-muted);">No subcontractors added yet</span></div>';
 
+    // Build claim info section for storm board jobs
+    const claimHtml = j.board === 'storm' ? `
+      <div class="section-label">Insurance & Claim</div>
+      <div class="info-block">
+        <div class="info-row"><span class="lbl">Insurance Carrier</span><span class="val">${j.insuranceCarrier || '—'}</span></div>
+        <div class="info-row"><span class="lbl">Claim Number</span><span class="val">${j.claimNumber || '—'}</span></div>
+        ${j.claimEmail ? `<div class="info-row"><span class="lbl">Claim Email</span><span class="val"><a href="mailto:${j.claimEmail}" style="color:var(--blue);">${j.claimEmail}</a></span></div>` : ''}
+        ${j.contractNumber ? `<div class="info-row"><span class="lbl">Contract #</span><span class="val">${j.contractNumber}</span></div>` : ''}
+        ${j.roofCompletion ? `<div class="info-row"><span class="lbl">Roof Completion</span><span class="val">${j.roofCompletion}</span></div>` : ''}
+      </div>` : '';
+
     body.innerHTML = `
       <div class="section-label">Job Details</div>
       <div class="info-block">
-        <div class="info-row"><span class="lbl">Address</span><span class="val">${j.fullAddr || j.address || '—'}</span></div>
-        <div class="info-row"><span class="lbl">Client</span><span class="val">${j.client || '—'}</span></div>
-        <div class="info-row"><span class="lbl">Scope</span><span class="val">${j.scope || '—'}</span></div>
+        <div class="info-row"><span class="lbl">Project</span><span class="val">${j.projectName || j.address || '—'}</span></div>
+        <div class="info-row"><span class="lbl">Type</span><span class="val">${j.jobType === 'roofing' ? '🏠 Roofing' : '🔨 Remodel'}</span></div>
         <div class="info-row"><span class="lbl">Status</span><span class="val">${j.readyToBill ? '✅ Ready to Bill' : j.status.charAt(0).toUpperCase()+j.status.slice(1)}</span></div>
       </div>
+
+      <div class="section-label">Client Information</div>
+      <div class="info-block">
+        <div class="info-row"><span class="lbl">Client</span><span class="val">${j.client || '—'}</span></div>
+        <div class="info-row"><span class="lbl">Address</span><span class="val">${j.addr1 || '—'}${j.addr2 ? '<br>'+j.addr2 : ''}</span></div>
+        ${j.phone ? `<div class="info-row"><span class="lbl">Phone</span><span class="val"><a href="tel:${j.phone}" style="color:var(--blue);">${j.phone}</a></span></div>` : ''}
+        ${j.email ? `<div class="info-row"><span class="lbl">Email</span><span class="val"><a href="mailto:${j.email}" style="color:var(--blue);font-size:12px;">${j.email}</a></span></div>` : ''}
+      </div>
+
+      ${claimHtml}
 
       <div class="section-label">Assigned Subcontractors</div>
       <div class="info-block" id="subsList">${subsHtml}</div>
@@ -1321,7 +1339,6 @@ function renderTab(tab) {
       </div>
     `;
   }
-
   else if (tab === 'checklist') {
     const jobId = j.rowIndex;
     const checklist = checklistType === 'roofing' ? ROOFING_CHECKLIST : REMODEL_CHECKLIST;
@@ -1527,7 +1544,8 @@ function toggleCheckEl(el) {
   if (count) count.textContent = done + '/' + total;
 
   // Save to Google Sheets in background
-  post({ action:'updateGates', rowIndex:jobId, completed:[...checked] }).catch(()=>{});
+  const jobForGates = jobs[currentJobIdx];
+  post({ action:'updateGates', rowIndex:jobId, completed:[...checked], board:jobForGates.board||'master' }).catch(()=>{});
 
   if (checked.has(item)) toast('✓ Checked off');
 }
@@ -1564,7 +1582,7 @@ function addNote() {
   j.notes.unshift(formatted);
   renderTab('notes');
 
-  post({ action:'updateNote', rowIndex:j.rowIndex, note:text, initials:stamp })
+  post({ action:'updateNote', rowIndex:j.rowIndex, note:text, initials:stamp, board:j.board||'master' })
     .then(() => toast('Note saved ✓'))
     .catch(() => toast('Note saved locally'));
 
@@ -1585,7 +1603,7 @@ function sendBilling() {
 function confirmBilling() {
   const j = jobs[currentJobIdx];
   closeModal();
-  post({ action:'triggerBilling', rowIndex:j.rowIndex, address:j.address, amount:j.amount, initials:userInitials })
+  post({ action:'triggerBilling', rowIndex:j.rowIndex, address:j.address, amount:j.amount, initials:userInitials, board:j.board||'master' })
     .then(() => {
       j.readyToBill = true;
       renderTab('billing');
