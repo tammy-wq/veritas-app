@@ -961,8 +961,8 @@ function syncJobs() {
     .then(data => {
       if (data.error) throw new Error(data.error);
       jobs = data.jobs;
-      // Load photos from sheet into local storage for each job
-      jobs.forEach(job => loadPhotosFromSheet(job));
+      // Load all photos from dedicated Photos sheet
+      loadAllPhotosFromSheet();
       const t = new Date(data.timestamp);
       bar.textContent = 'Last synced: ' + t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
       updateSummary();
@@ -977,12 +977,19 @@ function syncJobs() {
     });
 }
 
+// Use GET requests for all write actions — Safari blocks cross-origin POST
 function post(payload) {
-  return fetch(webAppUrl, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  }).then(r => r.json());
+  const params = new URLSearchParams();
+  Object.keys(payload).forEach(key => {
+    const val = payload[key];
+    if (typeof val === 'object') {
+      params.append(key, encodeURIComponent(JSON.stringify(val)));
+    } else {
+      params.append(key, val);
+    }
+  });
+  return fetch(webAppUrl + '?' + params.toString())
+    .then(r => r.json());
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1712,8 +1719,8 @@ function saveJobPhoto(jobId, category, photoObj) {
   const photos = getJobPhotos(jobId, category);
   photos.unshift(photoObj);
   localStorage.setItem('photos_' + jobId + '_' + category, JSON.stringify(photos));
-  // Sync all photo categories to Google Sheets
-  syncPhotosToSheet(jobId);
+  // Save this single photo to Google Sheets
+  savePhotoToSheet(jobId, category, photoObj);
 }
 
 function getAllJobPhotos(jobId) {
@@ -1725,32 +1732,73 @@ function getAllJobPhotos(jobId) {
   return all;
 }
 
-function syncPhotosToSheet(jobId) {
-  const allPhotos = getAllJobPhotos(jobId);
-  const stripped = {};
-  Object.keys(allPhotos).forEach(cat => {
-    stripped[cat] = allPhotos[cat].map(p => ({
-      id:          p.id,
-      name:        p.name,
-      url:         p.url,
-      uploaded:    p.uploaded,
-      uploadedBy:  p.uploadedBy,
-    }));
+function savePhotoToSheet(jobId, category, photo) {
+  // Send one photo record at a time — small payload, no size issues
+  const params = new URLSearchParams({
+    action:     'updatePhotos',
+    rowIndex:   jobId,
+    photoId:    photo.id,
+    photoName:  photo.name,
+    photoUrl:   photo.url,
+    category:   category,
+    uploadedBy: photo.uploadedBy || userInitials,
+    uploaded:   photo.uploaded || new Date().toISOString(),
   });
-  console.log('Syncing photos to sheet for row', jobId, JSON.stringify(stripped).substring(0,300));
-  post({ action: 'updatePhotos', rowIndex: jobId, photos: stripped })
+
+  fetch(webAppUrl + '?' + params.toString())
+    .then(r => r.json())
     .then(r => {
-      console.log('Photo sync response:', JSON.stringify(r));
+      console.log('Photo save response:', JSON.stringify(r));
       if (r && r.success) {
-        toast('Photo saved to sheet ✓');
+        toast('Photo saved ✓');
       } else {
-        toast('Sheet save failed: ' + JSON.stringify(r));
+        toast('Save failed: ' + JSON.stringify(r));
       }
     })
     .catch(err => {
-      console.error('Photo sync FAILED:', err);
-      toast('Sheet save error: ' + err.message);
+      console.error('Photo save FAILED:', err);
+      toast('Save error: ' + err.message);
     });
+}
+
+// Load all photos from the dedicated Photos sheet
+function loadAllPhotosFromSheet() {
+  fetch(webAppUrl + '?action=getPhotos')
+    .then(r => r.json())
+    .then(data => {
+      if (!data || data.error) return;
+      // data is { rowIndex: { category: [photos] } }
+      Object.keys(data).forEach(rowIndex => {
+        const jobPhotos = data[rowIndex];
+        const local = {};
+        ['before','progress','after','other'].forEach(cat => {
+          local[cat] = getJobPhotos(rowIndex, cat);
+        });
+        Object.keys(jobPhotos).forEach(cat => {
+          const sheetPhotos = jobPhotos[cat] || [];
+          const localMap = {};
+          (local[cat] || []).forEach(p => { localMap[p.id] = p; });
+          const merged = sheetPhotos.map(sp => {
+            if (localMap[sp.id]) return localMap[sp.id];
+            return {
+              ...sp,
+              thumb: `https://lh3.googleusercontent.com/d/${sp.id}=w300`
+            };
+          });
+          const sheetIds = new Set(sheetPhotos.map(p => p.id));
+          const localOnly = (local[cat] || []).filter(p => !sheetIds.has(p.id));
+          const final = [...merged, ...localOnly];
+          localStorage.setItem('photos_' + rowIndex + '_' + cat, JSON.stringify(final));
+        });
+      });
+      console.log('Photos loaded from sheet successfully');
+    })
+    .catch(err => console.error('Failed to load photos:', err));
+}
+
+// Keep old name for compatibility
+function syncPhotosToSheet(jobId) {
+  // No-op — we now save per-photo in savePhotoToSheet
 }
 
 function loadPhotosFromSheet(job) {
@@ -2070,6 +2118,9 @@ async function deletePhoto(category, photoIdx, fileId) {
 
   // Sync deletion to Google Sheets
   syncPhotosToSheet(jobId);
+
+  // Delete from sheet
+  fetch(webAppUrl + '?action=deletePhoto&photoId=' + fileId).catch(() => {});
 
   // Delete from Google Drive
   if (fileId && isGDriveSignedIn()) {
