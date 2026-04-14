@@ -1739,8 +1739,18 @@ function syncPhotosToSheet(jobId) {
   });
   console.log('Syncing photos to sheet for row', jobId, JSON.stringify(stripped).substring(0,300));
   post({ action: 'updatePhotos', rowIndex: jobId, photos: stripped })
-    .then(r => console.log('Photo sync response:', JSON.stringify(r)))
-    .catch(err => console.error('Photo sync FAILED:', err));
+    .then(r => {
+      console.log('Photo sync response:', JSON.stringify(r));
+      if (r && r.success) {
+        toast('Photo saved to sheet ✓');
+      } else {
+        toast('Sheet save failed: ' + JSON.stringify(r));
+      }
+    })
+    .catch(err => {
+      console.error('Photo sync FAILED:', err);
+      toast('Sheet save error: ' + err.message);
+    });
 }
 
 function loadPhotosFromSheet(job) {
