@@ -1142,8 +1142,8 @@ function renderList() {
       <div class="card-inner">
         <div class="card-top">
           <div>
-            <div class="card-address">${j.address || '—'}${boardTag}</div>
-            <div class="card-scope">${j.scope || j.client || ''}</div>
+            <div class="card-address">${j.projectName || j.address || '—'}${boardTag}</div>
+            <div class="card-scope">${j.client || j.scope || ''}</div>
           </div>
           <div class="card-badge badge-${badge}">${badgeLabel}</div>
         </div>
@@ -1217,8 +1217,8 @@ function openJob(idx) {
   const statusColor = j.readyToBill ? '#16A34A' : j.status === 'stalled' ? '#D97706' : j.status === 'attention' ? '#DC2626' : '#2563EB';
   document.getElementById('detailHeader').innerHTML = `
     <button class="detail-back" onclick="showScreen('screen-list')">← Back</button>
-    <div class="detail-address">${j.address || '—'}</div>
-    <div class="detail-scope">${j.scope || j.client || ''}</div>
+    <div class="detail-address">${j.projectName || j.address || '—'}</div>
+    <div class="detail-scope">${j.client || j.scope || ''}</div>
     <div class="detail-chips">
       ${j.amount ? `<div class="detail-chip"><span>${j.amount}</span>Contract</div>` : ''}
       ${j.deposit ? `<div class="detail-chip"><span>${j.deposit}</span>Deposit</div>` : ''}
